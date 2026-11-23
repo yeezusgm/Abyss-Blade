@@ -36,20 +36,24 @@ export function createPanTravel(originX=0,originY=2.6){
 
 // Distinct world speeds for the horizon, painted ruins and the two silhouette
 // layers. Horizontal UVs repeat at the edges; vertical UVs never leave the art.
+// Tamaño de los fondos pintados (bosque, abismo y Marjal). 1 = tamaño anterior; menos = más pequeños.
+// El "suelo" (floor) garantiza que la imagen siempre cubra la pantalla: el borde inferior nunca se ve.
+export const escalaFondos=.87;
+const E=escalaFondos,F=1.06;
 export const plates={
-  sky:        {speed:.24,lift:.15,phase:.51,height:12.4},
-  eclipse:    {speed:.21,lift:.13,phase:.36,height:12.4},
+  sky:        {speed:.24,lift:.15,phase:.51,height:12.4*E,floor:F},
+  eclipse:    {speed:.21,lift:.13,phase:.36,height:12.4*E,floor:F},
   cavern:     {speed:.25,lift:.16,phase:.66,height:12.3},
   skylight:   {speed:.28,lift:.17,phase:.30,height:12.3},
   grotto:     {speed:.37,lift:.23,phase:.66,height:12.1},
-  marshSky:   {speed:.18,lift:.12,phase:.52,height:13.4},
-  abbey:      {speed:.33,lift:.19,phase:.51,height:13.2},
+  marshSky:   {speed:.18,lift:.12,phase:.52,height:13.4*E,floor:F},
+  abbey:      {speed:.33,lift:.19,phase:.51,height:13.2*E,floor:F},
   middle:     {speed:.56,lift:.30,phase:.43,span:31,window:.86},
   near:       {speed:.90,lift:.45,phase:.37,span:24,window:.86}
 };
 export function framePlate(mesh,cx,cy,vw,vh,travel,spec,aspect=1){
   const w=vw*1.035,h=vh*1.045,texture=mesh.material.map;
-  const fullH=spec.span?h/spec.window:Math.max(spec.height,h*1.16);
+  const fullH=spec.span?h/spec.window:Math.max(spec.height,h*(spec.floor||1.16));
   const span=spec.span||fullH*aspect;
   const u=w/span,v=h/fullH,margin=1-v;
   // Keep the current landmark under the same screen coordinate on resize,
@@ -58,7 +62,7 @@ export function framePlate(mesh,cx,cy,vw,vh,travel,spec,aspect=1){
   let sample=mesh.userData.scenicSample;
   if(!sample||sample.cut!==travel.cut||sample.map!==texture){
     sample=mesh.userData.scenicSample={cut:travel.cut,map:texture,x:travel.x,
-      center:spec.phase+travel.x*spec.speed/(spec.span||spec.height*aspect)};
+      center:spec.phase+travel.x*spec.speed/span};
   }else{
     sample.center+=(travel.x-sample.x)*spec.speed/span;sample.x=travel.x;
   }
@@ -83,8 +87,8 @@ export function regionWeights(cave,cyan,marsh){
 }
 // Planos medio y cercano pintados a partir de los PSD (Bosque, Abismo y Zona de peste).
 // Cada uno es una imagen 2:1 con transparencia que viaja a su propia velocidad.
-plates.fotoMedio={speed:.46,lift:.28,phase:.5,height:12.8};
-plates.fotoCerca={speed:.80,lift:.42,phase:.5,height:13.8};
+plates.fotoMedio={speed:.46,lift:.28,phase:.5,height:12.8*E,floor:F};
+plates.fotoCerca={speed:.80,lift:.42,phase:.5,height:13.8*E,floor:F};
 const fotos={
   bosque:['./art/fondos/bosque-medio.webp','./art/fondos/bosque-cerca.webp'],
   abismo:['./art/fondos/abismo-medio.webp','./art/fondos/abismo-cerca.webp'],

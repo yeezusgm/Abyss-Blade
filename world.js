@@ -1,4 +1,4 @@
-import {framePlate,plates,driftPlate} from './paralaje.js';
+import {framePlate,plates,driftPlate,escalaFondos} from './paralaje.js';
 import {roadX} from './main-road.js';
 // The old scenery was painted in the unextended road's coordinates. Register each
 // landmark against today's terrain, including both feet of a freestanding arch.
@@ -103,8 +103,8 @@ export function createWorld(THREE, scene, {platforms=[], hazards=[], width=104, 
     loadLandscape(url,loaded=>{m.material.map=loaded;m.material.needsUpdate=true;m.userData.aspect=loaded.userData.aspect;m.userData.ready=true;});
     cloudLayers.push({m,spec,rate});
   };
-  cloud('./art/fondos/abismo-nubes-rojas.webp',-23.4,{speed:.26,lift:.16,phase:.5,height:12.4},.0035);
-  cloud('./art/fondos/abismo-nubes-moradas.webp',-22.8,{speed:.33,lift:.20,phase:.5,height:12.4},-.0055);
+  cloud('./art/fondos/abismo-nubes-rojas.webp',-23.4,{speed:.26,lift:.16,phase:.5,height:12.4*escalaFondos,floor:1.06},.0035);
+  cloud('./art/fondos/abismo-nubes-moradas.webp',-22.8,{speed:.33,lift:.20,phase:.5,height:12.4*escalaFondos,floor:1.06},-.0055);
 
   const oldEnd=plague?.start??width;
   const settle=(x,y=0,half=0)=>sceneryAnchor(platforms,x,y,half);

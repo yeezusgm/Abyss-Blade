@@ -1,4 +1,4 @@
-import {framePlate,plates,marshBlend,driftPlate} from './paralaje.js';
+import {framePlate,plates,marshBlend,driftPlate,escalaFondos} from './paralaje.js';
 // The Marjal is drawn behind the collision plane. Only its crusts and pools are at
 // the actual damage rectangles. Canvas textures are shared by WebGL and Canvas 2D.
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
@@ -193,9 +193,9 @@ export function createPlagueArt(T,scene,plague){
    },undefined,()=>{});
    skyLayers.push({m,spec,rate});
   };
-  sky('./art/fondos/peste-nubes-grandes.webp',-99,{speed:.20,lift:.13,phase:.5,height:13.4},.0040,'Nubes grandes del Marjal');
-  sky('./art/fondos/peste-montanas.webp',-98,{speed:.24,lift:.15,phase:.5,height:13.4},0,'Montañas del Marjal');
-  sky('./art/fondos/peste-nubes-pequenas.webp',-97,{speed:.28,lift:.17,phase:.5,height:13.4},.0075,'Nubes pequeñas del Marjal');
+  sky('./art/fondos/peste-nubes-grandes.webp',-99,{speed:.20,lift:.13,phase:.5,height:13.4*escalaFondos,floor:1.06},.0040,'Nubes grandes del Marjal');
+  sky('./art/fondos/peste-montanas.webp',-98,{speed:.24,lift:.15,phase:.5,height:13.4*escalaFondos,floor:1.06},0,'Montañas del Marjal');
+  sky('./art/fondos/peste-nubes-pequenas.webp',-97,{speed:.28,lift:.17,phase:.5,height:13.4*escalaFondos,floor:1.06},.0075,'Nubes pequeñas del Marjal');
   const art=Array.from({length:4},(_,i)=>toMap(T,markCanvas(i))),reed=toMap(T,reeds());
   const sectors=plague.sectors?.length?plague.sectors:[{x:start},{x:start+(end-start)*.24},{x:start+(end-start)*.46},{x:start+(end-start)*.73}];
   for(const [i,sector] of sectors.entries()){
