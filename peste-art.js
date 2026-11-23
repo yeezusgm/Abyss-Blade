@@ -1,4 +1,4 @@
-import {framePlate,plates,marshBlend,driftPlate,escalaFondos} from './paralaje.js';
+import {marshBlend} from './paralaje.js';
 // The Marjal is drawn behind the collision plane. Only its crusts and pools are at
 // the actual damage rectangles. Canvas textures are shared by WebGL and Canvas 2D.
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
@@ -174,37 +174,12 @@ function nameType(s,i){const label=(s.id+' '+s.name).toLowerCase();return /ester
 export function createPlagueArt(T,scene,plague){
  if(!plague||!Number.isFinite(plague.start)||!Number.isFinite(plague.end))return {update(){}};
  const {start,end}=plague,group=new T.Group();group.name='Marjal de la Peste · paisajes';group.visible=false;scene.add(group);
- const tile=new T.PlaneGeometry(1,1);let built=false,landscape=null,painted=null,background=null,farAspect=620/274;const skyLayers=[];
- const marks=[],fringes=[],pools=[],crusts=[];let spores,xyz,sporeP;
+ const tile=new T.PlaneGeometry(1,1);let built=false;
+ const fringes=[],pools=[],crusts=[];let spores,xyz,sporeP;
  function plane(map,z,order,tag){const m=new T.Mesh(tile,new T.MeshBasicMaterial({map,transparent:true,depthWrite:false,toneMapped:false}));m.position.z=z;m.renderOrder=order;m.name=tag;group.add(m);return m;}
  function build(){
-  built=true;background=toMap(T,horizon());background.wrapS=T.MirroredRepeatWrapping;landscape=plane(background,-8.1,-100,'Horizonte del Marjal');
-  // Plano lejano pintado (Zona_de_peste_2_0.psd). El horizonte procedural queda como respaldo hasta que cargue.
-  new T.TextureLoader().load('./art/fondos/peste-lejos.webp',tx=>{
-   tx.colorSpace=T.SRGBColorSpace;tx.magFilter=T.LinearFilter;tx.minFilter=T.LinearFilter;tx.wrapS=T.MirroredRepeatWrapping;tx.generateMipmaps=false;
-   farAspect=tx.image.width/tx.image.height;landscape.material.map=tx;landscape.material.needsUpdate=true;
-  },undefined,()=>{});
-  // Nubes y montañas del cielo, cada una en su propio plano. Las nubes derivan solas.
-  const sky=(url,order,spec,rate,tag)=>{
-   const m=plane(null,-8.1,order,tag);m.visible=false;m.userData.ready=false;m.userData.aspect=2;
-   new T.TextureLoader().load(url,tx=>{
-    tx.colorSpace=T.SRGBColorSpace;tx.magFilter=T.LinearFilter;tx.minFilter=T.LinearFilter;tx.wrapS=T.MirroredRepeatWrapping;tx.generateMipmaps=false;
-    m.userData.aspect=tx.image.width/tx.image.height;m.material.map=tx;m.material.needsUpdate=true;m.userData.ready=true;
-   },undefined,()=>{});
-   skyLayers.push({m,spec,rate});
-  };
-  sky('./art/fondos/peste-nubes-grandes.webp',-99,{speed:.20,lift:.13,phase:.5,height:13.4*escalaFondos,floor:1.06},.0040,'Nubes grandes del Marjal');
-  sky('./art/fondos/peste-montanas.webp',-98,{speed:.24,lift:.15,phase:.5,height:13.4*escalaFondos,floor:1.06},0,'Montañas del Marjal');
-  sky('./art/fondos/peste-nubes-pequenas.webp',-97,{speed:.28,lift:.17,phase:.5,height:13.4*escalaFondos,floor:1.06},.0075,'Nubes pequeñas del Marjal');
-  const art=Array.from({length:4},(_,i)=>toMap(T,markCanvas(i))),reed=toMap(T,reeds());
-  const sectors=plague.sectors?.length?plague.sectors:[{x:start},{x:start+(end-start)*.24},{x:start+(end-start)*.46},{x:start+(end-start)*.73}];
-  for(const [i,sector] of sectors.entries()){
-   const a=sector.x,b=sectors[i+1]?.x??end,kind=nameType(sector,i),w=b-a;
-   const main=plane(art[kind],-4.8,-66,'Silueta · '+(sector.name??kind));
-   marks.push({m:main,x:a+w*.42,w:kind===3?12.6:kind===0?11.5:10.9,y:sector.y??.2});
-   // Small silhouettes sit further back; never mirror the player's required route.
-   if(i!==0){const far=plane(art[(kind+3)%4],-5.2,-70,'Ruina en la bruma');marks.push({m:far,x:a+w*.83,w:6.8,y:sector.y??0,sub:true});}
-  }
+  built=true; // El horizonte ahora procede de las capas originales del PSD.
+  const reed=toMap(T,reeds());
   const srf=plague.platforms||[],positions=(plague.props||[]).filter(p=>p&&Number.isFinite(p.x)&&Number.isFinite(p.y));
   const tails=positions.length?positions:srf.filter((p,i)=>i%3===0&&p.w>2&&!p.gateId).map(p=>({x:p.x+p.w*.47,y:p.y+p.h}));
   for(const [i,p] of tails.entries()){
@@ -228,38 +203,11 @@ export function createPlagueArt(T,scene,plague){
   for(let i=0;i<n;i++){sporeP.push([pr(),pr(),pr()*tau,.2+pr()*.7]);const color=new T.Color(i%4?0xbac787:0xe4bd77);colors.set([color.r,color.g,color.b],i*3);}
   const geo=new T.BufferGeometry();geo.setAttribute('position',new T.BufferAttribute(xyz,3));geo.setAttribute('color',new T.BufferAttribute(colors,3));
   spores=new T.Points(geo,new T.PointsMaterial({size:2.2,sizeAttenuation:false,vertexColors:true,transparent:true,depthWrite:false,opacity:.48}));spores.position.z=.12;spores.renderOrder=-3;spores.frustumCulled=false;spores.name='Polen suspendido';group.add(spores);
-  // La abadía sumergida (art/marjal/abadia.webp) se sustituyó por las ruinas del nuevo PSD.
-
  }
  function update(t,cx,cy,vw,vh,quiet,travel){
   if(!built){if(cx<start-vw*1.2||cx>end+vw)return;build();}
   const f=marshBlend(cx,start);
   group.visible=f>.001&&cx<=end+vw;if(!group.visible)return;
-  framePlate(landscape,cx,cy,vw,vh,travel,plates.marshSky,farAspect);
-  landscape.material.opacity=f;
-  for(const {m,spec,rate} of skyLayers){
-   m.visible=m.userData.ready===true;if(!m.visible)continue;
-   framePlate(m,cx,cy,vw,vh,travel,spec,m.userData.aspect);
-   if(rate)driftPlate(m,t,rate,travel.amount??1);
-   m.material.opacity=f;
-  }
-  if(painted){
-    painted.visible=true;const img=painted.material.map.image;
-    framePlate(painted,cx,cy,vw,vh,travel,plates.abbey,img.width/img.height);painted.material.opacity=f*.71;
-  }
-  for(const s of marks){
-   const gap=Math.abs(s.x-cx),rate=s.sub?.29:.54,h=s.w*208/300;
-   if(gap>=37){s.m.visible=false;s.last=undefined;continue;}
-   if(s.last===undefined||s.cut!==travel.cut){
-     s.dx=(s.x-cx)*travel.amount+(s.sub?.30:-.16)*vw*(1-travel.amount)/rate;
-   }else{s.dx-=travel.x-s.last;}
-   s.last=travel.x;s.cut=travel.cut;
-   const offset=s.dx*rate;s.m.visible=Math.abs(offset)<vw*.57+s.w*.5;
-   if(s.m.visible){
-     s.m.position.x=cx+offset;s.m.position.y=cy-vh*.28+(s.y-.3-travel.y)*(s.sub?.13:.24)+h*.5;
-     s.m.scale.set(s.w,h,1);s.m.material.opacity=f*(s.sub?.34:.82)*smooth((37-gap)/8);
-   }
-  }
   for(const d of fringes){d.m.visible=Math.abs(cx-d.x)<vw*.55+2.2;if(d.m.visible)d.m.material.opacity=f*.8;}
   for(const d of pools){d.body.visible=d.m.visible=Math.abs(cx-d.x)<vw*.55+d.w*.5;if(d.m.visible){d.band.offset.x=d.phase+(quiet?0:t*.055);d.m.material.opacity=d.body.material.opacity=f;}}
   for(const d of crusts){d.m.visible=Math.abs(cx-d.x)<vw*.55+d.w*.5;if(d.m.visible)d.m.material.opacity=f;}

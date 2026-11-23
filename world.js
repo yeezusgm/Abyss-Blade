@@ -1,4 +1,4 @@
-import {framePlate,plates,driftPlate,escalaFondos} from './paralaje.js';
+import {framePlate,plates} from './paralaje.js';
 import {roadX} from './main-road.js';
 // The old scenery was painted in the unextended road's coordinates. Register each
 // landmark against today's terrain, including both feet of a freestanding arch.
@@ -86,25 +86,16 @@ export function createWorld(THREE, scene, {platforms=[], hazards=[], width=104, 
     loaded.userData.aspect=loaded.image.width/loaded.image.height;
     receive(loaded);
   },undefined,()=>{});
-  loadLandscape('./art/fondos/bosque-lejos.webp', loaded => {
+  loadLandscape('./art/forest.png', loaded => {
     bgTex.dispose();
     backdrop.material.map=loaded;
     bgTex=loaded;
   });
-  loadLandscape('./art/fondos/abismo-lejos.webp', loaded => {
+  loadLandscape('./art/eclipse.png', loaded => {
     abyss.material.map=loaded;
     abyss.material.needsUpdate=true;
     abyssTex=loaded;
   });
-  // Nubes del abismo: dos capas propias que derivan solas, cada una a su ritmo y con su paralaje.
-  const cloudLayers=[];
-  const cloud=(url,z,spec,rate)=>{
-    const m=plane(null,0,0,z,20,12,{opacity:0});m.visible=false;
-    loadLandscape(url,loaded=>{m.material.map=loaded;m.material.needsUpdate=true;m.userData.aspect=loaded.userData.aspect;m.userData.ready=true;});
-    cloudLayers.push({m,spec,rate});
-  };
-  cloud('./art/fondos/abismo-nubes-rojas.webp',-23.4,{speed:.26,lift:.16,phase:.5,height:12.4*escalaFondos,floor:1.06},.0035);
-  cloud('./art/fondos/abismo-nubes-moradas.webp',-22.8,{speed:.33,lift:.20,phase:.5,height:12.4*escalaFondos,floor:1.06},-.0055);
 
   const oldEnd=plague?.start??width;
   const settle=(x,y=0,half=0)=>sceneryAnchor(platforms,x,y,half);
@@ -426,12 +417,6 @@ export function createWorld(THREE, scene, {platforms=[], hazards=[], width=104, 
     if(abyss.visible){
       abyss.material.opacity=c*c*(3-2*c);
       framePlate(abyss,cameraX,cameraY,viewWidth,viewHeight,travel,plates.eclipse,abyssTex.userData.aspect);
-    }
-    for(const {m,spec,rate} of cloudLayers){
-      m.visible=abyss.visible&&m.userData.ready===true;if(!m.visible)continue;
-      m.material.opacity=abyss.material.opacity;
-      framePlate(m,cameraX,cameraY,viewWidth,viewHeight,travel,spec,m.userData.aspect);
-      driftPlate(m,time,rate,travel.amount??1);
     }
     ambient.position.x=cameraX+viewWidth*.16;
     ambient.position.y=cameraY+viewHeight*.18;
