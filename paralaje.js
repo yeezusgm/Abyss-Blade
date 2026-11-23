@@ -75,10 +75,34 @@ export function regionWeights(cave,cyan,marsh){
   const underground=clamp(cave+cyan),land=1-clamp(marsh);
   return {bosque:land*(1-underground),cueva:land*underground,marjal:1-land};
 }
+// Planos medio y cercano pintados a partir de los PSD (Bosque, Abismo y Zona de peste).
+// Cada uno es una imagen 2:1 con transparencia que viaja a su propia velocidad.
+plates.fotoMedio={speed:.46,lift:.28,phase:.5,height:12.8};
+plates.fotoCerca={speed:.80,lift:.42,phase:.5,height:13.8};
+const fotos={
+  bosque:['./art/fondos/bosque-medio.webp','./art/fondos/bosque-cerca.webp'],
+  abismo:['./art/fondos/abismo-medio.webp','./art/fondos/abismo-cerca.webp'],
+  marjal:['./art/fondos/peste-medio.webp','./art/fondos/peste-cerca.webp']
+};
+// Opacidad de cada plano (medio, cerca): el cercano es más tenue para no tapar las plataformas.
+const fotoOpacidad={bosque:[.95,.70],abismo:[.95,.72],marjal:[.95,.66]};
 export function createDepthBands(T,scene){
-  const geometry=new T.PlaneGeometry(1,1),layers=new Map();
-  const normal=new T.Color(0xffffff),eclipse=new T.Color(0xbfaad8);
-  function build(kind){
+  const geometry=new T.PlaneGeometry(1,1),layers=new Map(),loader=new T.TextureLoader();
+  function buildPhoto(kind){
+    const pair=fotos[kind].map((url,i)=>{
+      const mesh=new T.Mesh(geometry,new T.MeshBasicMaterial({map:null,transparent:true,depthWrite:false,toneMapped:false}));
+      mesh.name='Paralaje · '+kind+' · '+(i?'cerca':'medio');mesh.position.z=i?-2.55:-6.6;mesh.renderOrder=i?-46:-82;
+      mesh.visible=false;mesh.userData.aspect=2;mesh.userData.ready=false;scene.add(mesh);
+      loader.load(url,tx=>{
+        tx.colorSpace=T.SRGBColorSpace;tx.wrapS=T.MirroredRepeatWrapping;tx.magFilter=T.LinearFilter;
+        tx.minFilter=T.LinearFilter;tx.generateMipmaps=false;
+        mesh.userData.aspect=tx.image.width/tx.image.height;
+        mesh.material.map=tx;mesh.material.needsUpdate=true;mesh.userData.ready=true;
+      },undefined,()=>{});
+      return mesh;
+    });layers.set(kind,pair);return pair;
+  }
+  function buildBand(kind){
     const pair=['medio','cerca'].map((depth,i)=>{
       const tx=new T.CanvasTexture(paintDepthBand(kind,depth));
       tx.wrapS=T.RepeatWrapping;tx.colorSpace=T.SRGBColorSpace;tx.magFilter=T.NearestFilter;
@@ -88,16 +112,23 @@ export function createDepthBands(T,scene){
       return mesh;
     });layers.set(kind,pair);return pair;
   }
+  buildPhoto('bosque'); // el bosque es la primera pantalla: se carga desde el inicio
   return {update(cx,cy,vw,vh,travel,region,marsh,corruption=0,arena=0){
     const weights=regionWeights(region.cave,region.cyan,marsh);
-    for(const kind of ['bosque','cueva','marjal']){
-      const weight=weights[kind],pair=layers.get(kind)||(weight>.002?build(kind):null);
+    const c=clamp(corruption),eclipse=c*c*(3-2*c);
+    // El bosque se desvanece y el abismo entra con el mismo suavizado que el cielo del eclipse.
+    const mix={bosque:weights.bosque*(1-eclipse),abismo:weights.bosque*eclipse,cueva:weights.cueva,marjal:weights.marjal};
+    for(const kind of ['bosque','abismo','cueva','marjal']){
+      const weight=mix[kind],photo=!!fotos[kind];
+      let pair=layers.get(kind);
+      if(!pair&&weight>.002)pair=photo?buildPhoto(kind):buildBand(kind);
       if(!pair)continue;
       for(let i=0;i<2;i++){
-        const m=pair[i];m.visible=weight>.002;if(!m.visible)continue;
-        m.material.opacity=weight*(i?.85:.63)*(1-clamp(arena)*(i?.9:.63));
-        if(kind==='bosque')m.material.color.copy(normal).lerp(eclipse,clamp(corruption));
-        framePlate(m,cx,cy,vw,vh,travel,i?plates.near:plates.middle);
+        const m=pair[i];m.visible=weight>.002&&(!photo||m.userData.ready);if(!m.visible)continue;
+        const base=photo?fotoOpacidad[kind][i]:(i?.85:.63);
+        m.material.opacity=weight*base*(1-clamp(arena)*(i?.9:.63));
+        if(photo)framePlate(m,cx,cy,vw,vh,travel,i?plates.fotoCerca:plates.fotoMedio,m.userData.aspect);
+        else framePlate(m,cx,cy,vw,vh,travel,i?plates.near:plates.middle);
       }
     }
   }};

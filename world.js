@@ -86,12 +86,12 @@ export function createWorld(THREE, scene, {platforms=[], hazards=[], width=104, 
     loaded.userData.aspect=loaded.image.width/loaded.image.height;
     receive(loaded);
   },undefined,()=>{});
-  loadLandscape('./art/forest.png', loaded => {
+  loadLandscape('./art/fondos/bosque-lejos.webp', loaded => {
     bgTex.dispose();
     backdrop.material.map=loaded;
     bgTex=loaded;
   });
-  loadLandscape('./art/eclipse.png', loaded => {
+  loadLandscape('./art/fondos/abismo-lejos.webp', loaded => {
     abyss.material.map=loaded;
     abyss.material.needsUpdate=true;
     abyssTex=loaded;

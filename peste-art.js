@@ -174,11 +174,16 @@ function nameType(s,i){const label=(s.id+' '+s.name).toLowerCase();return /ester
 export function createPlagueArt(T,scene,plague){
  if(!plague||!Number.isFinite(plague.start)||!Number.isFinite(plague.end))return {update(){}};
  const {start,end}=plague,group=new T.Group();group.name='Marjal de la Peste · paisajes';group.visible=false;scene.add(group);
- const tile=new T.PlaneGeometry(1,1);let built=false,landscape=null,painted=null,background=null;
+ const tile=new T.PlaneGeometry(1,1);let built=false,landscape=null,painted=null,background=null,farAspect=620/274;
  const marks=[],fringes=[],pools=[],crusts=[];let spores,xyz,sporeP;
  function plane(map,z,order,tag){const m=new T.Mesh(tile,new T.MeshBasicMaterial({map,transparent:true,depthWrite:false,toneMapped:false}));m.position.z=z;m.renderOrder=order;m.name=tag;group.add(m);return m;}
  function build(){
   built=true;background=toMap(T,horizon());background.wrapS=T.MirroredRepeatWrapping;landscape=plane(background,-8.1,-100,'Horizonte del Marjal');
+  // Plano lejano pintado (Zona_de_peste_2_0.psd). El horizonte procedural queda como respaldo hasta que cargue.
+  new T.TextureLoader().load('./art/fondos/peste-lejos.webp',tx=>{
+   tx.colorSpace=T.SRGBColorSpace;tx.magFilter=T.LinearFilter;tx.minFilter=T.LinearFilter;tx.wrapS=T.MirroredRepeatWrapping;tx.generateMipmaps=false;
+   farAspect=tx.image.width/tx.image.height;landscape.material.map=tx;landscape.material.needsUpdate=true;
+  },undefined,()=>{});
   const art=Array.from({length:4},(_,i)=>toMap(T,markCanvas(i))),reed=toMap(T,reeds());
   const sectors=plague.sectors?.length?plague.sectors:[{x:start},{x:start+(end-start)*.24},{x:start+(end-start)*.46},{x:start+(end-start)*.73}];
   for(const [i,sector] of sectors.entries()){
@@ -211,17 +216,14 @@ export function createPlagueArt(T,scene,plague){
   for(let i=0;i<n;i++){sporeP.push([pr(),pr(),pr()*tau,.2+pr()*.7]);const color=new T.Color(i%4?0xbac787:0xe4bd77);colors.set([color.r,color.g,color.b],i*3);}
   const geo=new T.BufferGeometry();geo.setAttribute('position',new T.BufferAttribute(xyz,3));geo.setAttribute('color',new T.BufferAttribute(colors,3));
   spores=new T.Points(geo,new T.PointsMaterial({size:2.2,sizeAttenuation:false,vertexColors:true,transparent:true,depthWrite:false,opacity:.48}));spores.position.z=.12;spores.renderOrder=-3;spores.frustumCulled=false;spores.name='Polen suspendido';group.add(spores);
-  // An immediate painted horizon is present even before the panorama decodes.
-  new T.TextureLoader().load('./art/marjal/abadia.webp',tx=>{
-   tx.colorSpace=T.SRGBColorSpace;tx.magFilter=T.NearestFilter;tx.minFilter=T.LinearFilter;tx.wrapS=T.MirroredRepeatWrapping;tx.generateMipmaps=false;
-   painted=plane(tx,-7.9,-98,'Abadía sumergida');painted.visible=false;
-  },undefined,()=>{});
+  // La abadía sumergida (art/marjal/abadia.webp) se sustituyó por las ruinas del nuevo PSD.
+
  }
  function update(t,cx,cy,vw,vh,quiet,travel){
   if(!built){if(cx<start-vw*1.2||cx>end+vw)return;build();}
   const f=marshBlend(cx,start);
   group.visible=f>.001&&cx<=end+vw;if(!group.visible)return;
-  framePlate(landscape,cx,cy,vw,vh,travel,plates.marshSky,620/274);
+  framePlate(landscape,cx,cy,vw,vh,travel,plates.marshSky,farAspect);
   landscape.material.opacity=f;
   if(painted){
     painted.visible=true;const img=painted.material.map.image;
