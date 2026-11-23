@@ -90,7 +90,7 @@ export function createDepthBands(T,scene){
   }
   return {update(cx,cy,vw,vh,travel,region,marsh,corruption=0,arena=0){
     const weights=regionWeights(region.cave,region.cyan,marsh);
-    for(const kind of ['cueva']){
+    for(const kind of ['bosque','cueva','marjal']){
       const weight=weights[kind],pair=layers.get(kind)||(weight>.002?build(kind):null);
       if(!pair)continue;
       for(let i=0;i<2;i++){

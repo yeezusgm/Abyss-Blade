@@ -1,4 +1,4 @@
-import {marshBlend} from './paralaje.js';
+import {framePlate,plates,marshBlend} from './paralaje.js';
 // The Marjal is drawn behind the collision plane. Only its crusts and pools are at
 // the actual damage rectangles. Canvas textures are shared by WebGL and Canvas 2D.
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
@@ -174,12 +174,20 @@ function nameType(s,i){const label=(s.id+' '+s.name).toLowerCase();return /ester
 export function createPlagueArt(T,scene,plague){
  if(!plague||!Number.isFinite(plague.start)||!Number.isFinite(plague.end))return {update(){}};
  const {start,end}=plague,group=new T.Group();group.name='Marjal de la Peste · paisajes';group.visible=false;scene.add(group);
- const tile=new T.PlaneGeometry(1,1);let built=false;
- const fringes=[],pools=[],crusts=[];let spores,xyz,sporeP;
+ const tile=new T.PlaneGeometry(1,1);let built=false,landscape=null,painted=null,background=null;
+ const marks=[],fringes=[],pools=[],crusts=[];let spores,xyz,sporeP;
  function plane(map,z,order,tag){const m=new T.Mesh(tile,new T.MeshBasicMaterial({map,transparent:true,depthWrite:false,toneMapped:false}));m.position.z=z;m.renderOrder=order;m.name=tag;group.add(m);return m;}
  function build(){
-  built=true; // El horizonte ahora procede de las capas originales del PSD.
-  const reed=toMap(T,reeds());
+  built=true;background=toMap(T,horizon());background.wrapS=T.MirroredRepeatWrapping;landscape=plane(background,-8.1,-100,'Horizonte del Marjal');
+  const art=Array.from({length:4},(_,i)=>toMap(T,markCanvas(i))),reed=toMap(T,reeds());
+  const sectors=plague.sectors?.length?plague.sectors:[{x:start},{x:start+(end-start)*.24},{x:start+(end-start)*.46},{x:start+(end-start)*.73}];
+  for(const [i,sector] of sectors.entries()){
+   const a=sector.x,b=sectors[i+1]?.x??end,kind=nameType(sector,i),w=b-a;
+   const main=plane(art[kind],-4.8,-66,'Silueta · '+(sector.name??kind));
+   marks.push({m:main,x:a+w*.42,w:kind===3?12.6:kind===0?11.5:10.9,y:sector.y??.2});
+   // Small silhouettes sit further back; never mirror the player's required route.
+   if(i!==0){const far=plane(art[(kind+3)%4],-5.2,-70,'Ruina en la bruma');marks.push({m:far,x:a+w*.83,w:6.8,y:sector.y??0,sub:true});}
+  }
   const srf=plague.platforms||[],positions=(plague.props||[]).filter(p=>p&&Number.isFinite(p.x)&&Number.isFinite(p.y));
   const tails=positions.length?positions:srf.filter((p,i)=>i%3===0&&p.w>2&&!p.gateId).map(p=>({x:p.x+p.w*.47,y:p.y+p.h}));
   for(const [i,p] of tails.entries()){
@@ -203,11 +211,35 @@ export function createPlagueArt(T,scene,plague){
   for(let i=0;i<n;i++){sporeP.push([pr(),pr(),pr()*tau,.2+pr()*.7]);const color=new T.Color(i%4?0xbac787:0xe4bd77);colors.set([color.r,color.g,color.b],i*3);}
   const geo=new T.BufferGeometry();geo.setAttribute('position',new T.BufferAttribute(xyz,3));geo.setAttribute('color',new T.BufferAttribute(colors,3));
   spores=new T.Points(geo,new T.PointsMaterial({size:2.2,sizeAttenuation:false,vertexColors:true,transparent:true,depthWrite:false,opacity:.48}));spores.position.z=.12;spores.renderOrder=-3;spores.frustumCulled=false;spores.name='Polen suspendido';group.add(spores);
+  // An immediate painted horizon is present even before the panorama decodes.
+  new T.TextureLoader().load('./art/marjal/abadia.webp',tx=>{
+   tx.colorSpace=T.SRGBColorSpace;tx.magFilter=T.NearestFilter;tx.minFilter=T.LinearFilter;tx.wrapS=T.MirroredRepeatWrapping;tx.generateMipmaps=false;
+   painted=plane(tx,-7.9,-98,'Abadía sumergida');painted.visible=false;
+  },undefined,()=>{});
  }
  function update(t,cx,cy,vw,vh,quiet,travel){
   if(!built){if(cx<start-vw*1.2||cx>end+vw)return;build();}
   const f=marshBlend(cx,start);
   group.visible=f>.001&&cx<=end+vw;if(!group.visible)return;
+  framePlate(landscape,cx,cy,vw,vh,travel,plates.marshSky,620/274);
+  landscape.material.opacity=f;
+  if(painted){
+    painted.visible=true;const img=painted.material.map.image;
+    framePlate(painted,cx,cy,vw,vh,travel,plates.abbey,img.width/img.height);painted.material.opacity=f*.71;
+  }
+  for(const s of marks){
+   const gap=Math.abs(s.x-cx),rate=s.sub?.29:.54,h=s.w*208/300;
+   if(gap>=37){s.m.visible=false;s.last=undefined;continue;}
+   if(s.last===undefined||s.cut!==travel.cut){
+     s.dx=(s.x-cx)*travel.amount+(s.sub?.30:-.16)*vw*(1-travel.amount)/rate;
+   }else{s.dx-=travel.x-s.last;}
+   s.last=travel.x;s.cut=travel.cut;
+   const offset=s.dx*rate;s.m.visible=Math.abs(offset)<vw*.57+s.w*.5;
+   if(s.m.visible){
+     s.m.position.x=cx+offset;s.m.position.y=cy-vh*.28+(s.y-.3-travel.y)*(s.sub?.13:.24)+h*.5;
+     s.m.scale.set(s.w,h,1);s.m.material.opacity=f*(s.sub?.34:.82)*smooth((37-gap)/8);
+   }
+  }
   for(const d of fringes){d.m.visible=Math.abs(cx-d.x)<vw*.55+2.2;if(d.m.visible)d.m.material.opacity=f*.8;}
   for(const d of pools){d.body.visible=d.m.visible=Math.abs(cx-d.x)<vw*.55+d.w*.5;if(d.m.visible){d.band.offset.x=d.phase+(quiet?0:t*.055);d.m.material.opacity=d.body.material.opacity=f;}}
   for(const d of crusts){d.m.visible=Math.abs(cx-d.x)<vw*.55+d.w*.5;if(d.m.visible)d.m.material.opacity=f;}

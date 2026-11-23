@@ -21,18 +21,3 @@ La Forja de la Raíz está a la derecha del faro del Umbral de la Raíz. Pulsa E
 Cada tarjeta de perfil muestra lo que guarda esa partida, incluido el último refugio. A/D o las flechas eligen perfil; J o Enter abre la partida. Las ranuras anteriores siguen disponibles y una tarjeta vacía permite empezar otra aventura sin sobrescribirlas.
 
 El bosque, las grutas y el Marjal tienen paralaje al caminar y saltar. En Opciones > Paralaje del escenario elige Auto, Normal, Suave o Fijo. Puedes cambiarlo durante la partida con el teclado o al tocar la pantalla. Auto respeta el movimiento reducido del sistema o del juego. Si eliges Normal o Suave, el paisaje se mueve incluso con las sacudidas y destellos reducidos. Fijo inmoviliza el paisaje. La preferencia se guarda aparte de los perfiles. En extras/paralaje.mp4 puedes comparar Fijo y Normal durante el mismo recorrido de Tom.
-
-
-FONDOS PSD 2.0 · BOSQUE, ABISMO Y ZONA DE PESTE
-Se sustituyeron los paisajes anteriores por los PSD suministrados.
-Las capas de cada PSD se exportaron por profundidades y se conservaron sus
-posiciones originales en lienzos de 2000 x 1000 px. No hace falta incluir
-Photoshop ni los PSD originales para jugar. Archivos: art/parallax/*.webp.
-El motor de paralaje está en psd-parallax.js; se conecta desde main.js.
-La cámara desplaza horizontalmente el cielo, las estructuras, los planos
-intermedios y la niebla a velocidades distintas, sin alterar la escala de
-las capas individuales. En los extremos se utiliza repetición de espejo
-para evitar franjas transparentes durante el desplazamiento prolongado.
-Se mantuvieron el terreno, las plataformas, las colisiones, el combate y
-los objetos interactivos. Las opciones Auto, Normal, Suave y Fijo siguen
-funcionando desde el menú de Opciones.

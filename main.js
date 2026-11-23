@@ -4,7 +4,6 @@ import * as THREE from './vendor/three.module.js';
 import {createSimulation} from './physics.js';
 import {createWorld} from './world.js';
 import {createPanTravel,createDepthBands,marshBlend,parallaxModes,parallaxStrength,effectiveParallax,scenicFocus} from './paralaje.js';
-import {createPSDParallax} from './psd-parallax.js';
 import {createActors} from './actors.js';
 import {createSpriteLibrary,sheets,frameRect} from './bestiario.js';
 import {createCanvasRenderer} from './canvas-renderer.js';
@@ -49,7 +48,6 @@ const scene=new THREE.Scene(), camera=new THREE.OrthographicCamera(-10,10,5,-5,.
 const sim=createSimulation({...level,enemyUpdateRadius:32,enemies:level.enemies.filter(e=>e.id!==level.keeper),health:6,hasSword:false});
 const world=createWorld(THREE,scene,{...level,swordX:level.sword.x,gateX:level.archiveAltar.x});
 const pan=createPanTravel(level.spawn.x,2.6),depthBands=createDepthBands(THREE,scene);
-const psdScenery=createPSDParallax(THREE,scene,{spawn:level.spawn.x,sword:level.sword.x,marshStart:level.plague.start});
 let panCut=true,wasFramed=false;
 const sprites=createSpriteLibrary(THREE), actors=createActors(THREE,scene,sim,sprites);
 const journey=createJourney(level,sim), landmarks=createLandmarks(THREE,scene,level,sprites), caves=createCaves(THREE,scene);
@@ -699,7 +697,6 @@ function frame(now){
  world.update(t,camX,camY,corruption,scenicWidth,scenicHeight,travel);
  caves.update(t,region,camX,camY,scenicWidth,scenicHeight,p,quiet(),travel,sceneRegion);
  marshArt.update(t,camX,camY,scenicWidth,scenicHeight,quiet(),travel);
- psdScenery.update(camX,camY,scenicWidth,scenicHeight,travel,sceneRegion,marshBlend(camX,level.plague.start),corruption);
  depthBands.update(camX,camY,scenicWidth,scenicHeight,travel,sceneRegion,marshBlend(camX,level.plague.start),corruption,arenaCover);
  marshMarkers.update(camera.position.x,vw/zoom,marsh);
  veil.hidden=region.darkness<.006||mode==='title'||mode==='slots'||mode==='help'||mode==='credits';
