@@ -70,6 +70,12 @@ export function framePlate(mesh,cx,cy,vw,vh,travel,spec,aspect=1){
   texture.updateMatrix();
   mesh.position.x=cx;mesh.position.y=cy;mesh.scale.set(w,h,1);
 }
+// Deriva lenta de las nubes: se suma al desplazamiento por paralaje que ya fijó framePlate.
+// "amount" es la fuerza del paralaje (0 en modo Fijo o con movimiento reducido): sin paralaje, las nubes no se mueven.
+export function driftPlate(mesh,t,rate,amount=1){
+  const tx=mesh.material.map;if(!tx)return;
+  tx.offset.x+=(t*rate*amount)%2;tx.updateMatrix();
+}
 export function marshBlend(cx,start){return Number.isFinite(start)?smooth((cx-start+3)/7):0;}
 export function regionWeights(cave,cyan,marsh){
   const underground=clamp(cave+cyan),land=1-clamp(marsh);
@@ -84,8 +90,8 @@ const fotos={
   abismo:['./art/fondos/abismo-medio.webp','./art/fondos/abismo-cerca.webp'],
   marjal:['./art/fondos/peste-medio.webp','./art/fondos/peste-cerca.webp']
 };
-// Opacidad de cada plano (medio, cerca): el cercano es más tenue para no tapar las plataformas.
-const fotoOpacidad={bosque:[.95,.70],abismo:[.95,.72],marjal:[.95,.66]};
+// Opacidad de cada plano (medio, cerca). Al 100 % los árboles y el esqueleto se ven sólidos.
+const fotoOpacidad={bosque:[1,1],abismo:[1,1],marjal:[1,1]};
 export function createDepthBands(T,scene){
   const geometry=new T.PlaneGeometry(1,1),layers=new Map(),loader=new T.TextureLoader();
   function buildPhoto(kind){

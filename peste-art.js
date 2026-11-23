@@ -1,4 +1,4 @@
-import {framePlate,plates,marshBlend} from './paralaje.js';
+import {framePlate,plates,marshBlend,driftPlate} from './paralaje.js';
 // The Marjal is drawn behind the collision plane. Only its crusts and pools are at
 // the actual damage rectangles. Canvas textures are shared by WebGL and Canvas 2D.
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
@@ -174,7 +174,7 @@ function nameType(s,i){const label=(s.id+' '+s.name).toLowerCase();return /ester
 export function createPlagueArt(T,scene,plague){
  if(!plague||!Number.isFinite(plague.start)||!Number.isFinite(plague.end))return {update(){}};
  const {start,end}=plague,group=new T.Group();group.name='Marjal de la Peste · paisajes';group.visible=false;scene.add(group);
- const tile=new T.PlaneGeometry(1,1);let built=false,landscape=null,painted=null,background=null,farAspect=620/274;
+ const tile=new T.PlaneGeometry(1,1);let built=false,landscape=null,painted=null,background=null,farAspect=620/274;const skyLayers=[];
  const marks=[],fringes=[],pools=[],crusts=[];let spores,xyz,sporeP;
  function plane(map,z,order,tag){const m=new T.Mesh(tile,new T.MeshBasicMaterial({map,transparent:true,depthWrite:false,toneMapped:false}));m.position.z=z;m.renderOrder=order;m.name=tag;group.add(m);return m;}
  function build(){
@@ -184,6 +184,18 @@ export function createPlagueArt(T,scene,plague){
    tx.colorSpace=T.SRGBColorSpace;tx.magFilter=T.LinearFilter;tx.minFilter=T.LinearFilter;tx.wrapS=T.MirroredRepeatWrapping;tx.generateMipmaps=false;
    farAspect=tx.image.width/tx.image.height;landscape.material.map=tx;landscape.material.needsUpdate=true;
   },undefined,()=>{});
+  // Nubes y montañas del cielo, cada una en su propio plano. Las nubes derivan solas.
+  const sky=(url,order,spec,rate,tag)=>{
+   const m=plane(null,-8.1,order,tag);m.visible=false;m.userData.ready=false;m.userData.aspect=2;
+   new T.TextureLoader().load(url,tx=>{
+    tx.colorSpace=T.SRGBColorSpace;tx.magFilter=T.LinearFilter;tx.minFilter=T.LinearFilter;tx.wrapS=T.MirroredRepeatWrapping;tx.generateMipmaps=false;
+    m.userData.aspect=tx.image.width/tx.image.height;m.material.map=tx;m.material.needsUpdate=true;m.userData.ready=true;
+   },undefined,()=>{});
+   skyLayers.push({m,spec,rate});
+  };
+  sky('./art/fondos/peste-nubes-grandes.webp',-99,{speed:.20,lift:.13,phase:.5,height:13.4},.0040,'Nubes grandes del Marjal');
+  sky('./art/fondos/peste-montanas.webp',-98,{speed:.24,lift:.15,phase:.5,height:13.4},0,'Montañas del Marjal');
+  sky('./art/fondos/peste-nubes-pequenas.webp',-97,{speed:.28,lift:.17,phase:.5,height:13.4},.0075,'Nubes pequeñas del Marjal');
   const art=Array.from({length:4},(_,i)=>toMap(T,markCanvas(i))),reed=toMap(T,reeds());
   const sectors=plague.sectors?.length?plague.sectors:[{x:start},{x:start+(end-start)*.24},{x:start+(end-start)*.46},{x:start+(end-start)*.73}];
   for(const [i,sector] of sectors.entries()){
@@ -225,6 +237,12 @@ export function createPlagueArt(T,scene,plague){
   group.visible=f>.001&&cx<=end+vw;if(!group.visible)return;
   framePlate(landscape,cx,cy,vw,vh,travel,plates.marshSky,farAspect);
   landscape.material.opacity=f;
+  for(const {m,spec,rate} of skyLayers){
+   m.visible=m.userData.ready===true;if(!m.visible)continue;
+   framePlate(m,cx,cy,vw,vh,travel,spec,m.userData.aspect);
+   if(rate)driftPlate(m,t,rate,travel.amount??1);
+   m.material.opacity=f;
+  }
   if(painted){
     painted.visible=true;const img=painted.material.map.image;
     framePlate(painted,cx,cy,vw,vh,travel,plates.abbey,img.width/img.height);painted.material.opacity=f*.71;
